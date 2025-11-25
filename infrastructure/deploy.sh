@@ -1,14 +1,10 @@
 #!/bin/bash
 
-RESOURCE_GROUP="rg-babymonitor-dev"
+RESOURCE_GROUP="Nico"
 LOCATION="eastus"
 DEPLOYMENT_NAME="babymonitor-deployment-$(date +%s)"
 
-echo "Creating resource group..."
-az group create \
-  --name $RESOURCE_GROUP \
-  --location $LOCATION
-
+echo "Using existing resource group: $RESOURCE_GROUP"
 echo "Deploying infrastructure..."
 az deployment group create \
   --name $DEPLOYMENT_NAME \
