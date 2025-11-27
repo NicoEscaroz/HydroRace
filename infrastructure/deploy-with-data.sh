@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RESOURCE_GROUP="Arcadio3"
+RESOURCE_GROUP="Azure4"
 DEPLOYMENT_NAME="babymonitor-$(date +%s)"
 
 echo "Monitor de Bebés (con datos de prueba)"
@@ -18,11 +18,16 @@ echo "Ubicación: $LOCATION"
 echo "Desplegando recursos..."
 echo ""
 
+TENANT_ID=$(az account show --query tenantId -o tsv)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+
 az deployment group create \
   --name $DEPLOYMENT_NAME \
   --resource-group $RESOURCE_GROUP \
   --template-file main.bicep \
-  --parameters location=$LOCATION
+  --parameters location=$LOCATION \
+               tenantId=$TENANT_ID \
+               userObjectId=$USER_OBJECT_ID
 
 if [ $? -eq 0 ]; then
   echo ""

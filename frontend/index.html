@@ -1,60 +1,191 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monitor de Bebés IoT</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>🍼 Monitor de Bebés IoT</h1>
-      <p class="subtitle">Sistema de monitoreo de ruido en tiempo real</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitor de Bebés IoT</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🍼 Monitor de Bebés IoT</h1>
+        <p class="subtitle">Sistema de monitoreo de ruido en tiempo real</p>
+      </header>
 
-    <div class="dashboard">
-      <div class="alert-section">
-        <div id="alertIndicator" class="alert-indicator">
-          <div class="indicator-content">
-            <div class="decibel-value" id="currentDecibels">--</div>
-            <div class="decibel-label">dB</div>
+      <div class="dashboard">
+        <div class="alert-section">
+          <div id="alertIndicator" class="alert-indicator">
+            <div class="indicator-content">
+              <div class="decibel-value" id="currentDecibels">--</div>
+              <div class="decibel-label">dB</div>
+            </div>
+            <div class="status-text" id="statusText">Esperando datos...</div>
           </div>
-          <div class="status-text" id="statusText">Esperando datos...</div>
+
+          <div class="info-cards">
+            <div class="info-card">
+              <div class="card-label">Dispositivo</div>
+              <div class="card-value" id="deviceId">--</div>
+            </div>
+            <div class="info-card">
+              <div class="card-label">Última actualización</div>
+              <div class="card-value" id="lastUpdate">--</div>
+            </div>
+            <div class="info-card">
+              <div class="card-label">Total registros</div>
+              <div class="card-value" id="totalRecords">0</div>
+            </div>
+          </div>
         </div>
-        
-        <div class="info-cards">
-          <div class="info-card">
-            <div class="card-label">Dispositivo</div>
-            <div class="card-value" id="deviceId">--</div>
+
+        <div class="chart-section">
+          <h2>Historial de Ruido</h2>
+          <div class="chart-container">
+            <canvas id="noiseChart"></canvas>
           </div>
-          <div class="info-card">
-            <div class="card-label">Última actualización</div>
-            <div class="card-value" id="lastUpdate">--</div>
-          </div>
-          <div class="info-card">
-            <div class="card-label">Total registros</div>
-            <div class="card-value" id="totalRecords">0</div>
-          </div>
+          <button id="refreshBtn" class="refresh-btn">
+            🔄 Actualizar Datos
+          </button>
         </div>
       </div>
 
-      <div class="chart-section">
-        <h2>Historial de Ruido</h2>
-        <div class="chart-container">
-          <canvas id="noiseChart"></canvas>
+      <!-- Panel de Control -->
+      <div class="control-panel">
+        <h2>⚙️ Panel de Control</h2>
+
+        <!-- Enviar Datos -->
+        <div class="control-section">
+          <h3>📤 Enviar Datos Manualmente</h3>
+          <p class="section-description">
+            Simula el envío de datos desde un dispositivo Arduino/ESP32
+          </p>
+          <form id="sendDataForm" class="control-form">
+            <div class="form-group">
+              <label for="deviceIdInput">ID del Dispositivo:</label>
+              <input type="text" id="deviceIdInput" value="baby_01" required />
+            </div>
+            <div class="form-group">
+              <label for="decibelsInput">Nivel de Ruido (dB):</label>
+              <input
+                type="number"
+                id="decibelsInput"
+                min="0"
+                max="120"
+                step="0.1"
+                value="65"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <span class="btn-icon">📤</span> Enviar Dato
+            </button>
+            <div id="sendStatus" class="status-message"></div>
+          </form>
         </div>
-        <button id="refreshBtn" class="refresh-btn">🔄 Actualizar Datos</button>
+
+        <!-- Eliminar Datos -->
+        <div class="control-section">
+          <h3>🗑️ Gestionar Datos</h3>
+          <p class="section-description">
+            Elimina datos antiguos o de dispositivos específicos
+          </p>
+
+          <div class="delete-options">
+            <div class="delete-option">
+              <h4>Eliminar Datos Antiguos</h4>
+              <div class="form-group">
+                <label for="daysInput">Eliminar datos más antiguos que:</label>
+                <select id="daysInput">
+                  <option value="1">1 día</option>
+                  <option value="7">7 días</option>
+                  <option value="30" selected>30 días</option>
+                  <option value="90">90 días</option>
+                  <option value="365">1 año</option>
+                </select>
+              </div>
+              <button id="deleteOldBtn" class="btn btn-warning">
+                <span class="btn-icon">🗑️</span> Eliminar Datos Antiguos
+              </button>
+            </div>
+
+            <div class="delete-option">
+              <h4>Eliminar por Dispositivo</h4>
+              <div class="form-group">
+                <label for="deleteDeviceInput">ID del Dispositivo:</label>
+                <input type="text" id="deleteDeviceInput" value="baby_01" />
+              </div>
+              <button id="deleteDeviceBtn" class="btn btn-danger">
+                <span class="btn-icon">⚠️</span> Eliminar Todos los Datos
+              </button>
+            </div>
+          </div>
+
+          <div id="deleteStatus" class="status-message"></div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="control-section">
+          <h3>📊 Ver Estadísticas</h3>
+          <p class="section-description">
+            Obtén estadísticas detalladas de un dispositivo
+          </p>
+          <div class="form-group">
+            <label for="statsDeviceInput">ID del Dispositivo:</label>
+            <input type="text" id="statsDeviceInput" value="baby_01" />
+          </div>
+          <button id="getStatsBtn" class="btn btn-secondary">
+            <span class="btn-icon">📈</span> Ver Estadísticas
+          </button>
+          <div id="statsDisplay" class="stats-display"></div>
+        </div>
+
+        <!-- Exportar Datos -->
+        <div class="control-section">
+          <h3>💾 Exportar Historial</h3>
+          <p class="section-description">
+            Descarga el historial completo en CSV o JSON. Los datos se guardan
+            en Azure Storage.
+          </p>
+          <div class="form-group">
+            <label for="exportDeviceInput"
+              >ID del Dispositivo (opcional):</label
+            >
+            <input
+              type="text"
+              id="exportDeviceInput"
+              placeholder="Dejar vacío para todos los dispositivos"
+            />
+          </div>
+          <div class="form-group">
+            <label for="exportFormat">Formato:</label>
+            <select id="exportFormat">
+              <option value="csv" selected>CSV (Excel compatible)</option>
+              <option value="json">JSON</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="saveToStorage" checked />
+              Guardar en Azure Storage (además de descargar)
+            </label>
+          </div>
+          <button id="exportBtn" class="btn btn-primary">
+            <span class="btn-icon">💾</span> Exportar Historial
+          </button>
+          <div id="exportStatus" class="status-message"></div>
+        </div>
       </div>
+
+      <footer>
+        <p>
+          Proyecto Universitario - Monitor IoT | Datos actualizados
+          automáticamente cada 10 segundos
+        </p>
+      </footer>
     </div>
 
-    <footer>
-      <p>Proyecto Universitario - Monitor IoT | Datos actualizados automáticamente cada 10 segundos</p>
-    </footer>
-  </div>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
-

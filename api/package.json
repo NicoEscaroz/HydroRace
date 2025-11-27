@@ -1,0 +1,9 @@
+{
+  "name": "babymonitor-api",
+  "version": "1.0.0",
+  "description": "Azure Functions for Baby Monitor IoT",
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
