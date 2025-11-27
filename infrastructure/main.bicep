@@ -9,6 +9,8 @@ var staticWebAppName = '${projectName}-web-${environment}-${uniqueSuffix}'
 var cosmosAccountName = '${projectName}-cosmos-${environment}-${uniqueSuffix}'
 var storageName = 'bmst${substring(uniqueSuffix, 0, 13)}'
 var keyVaultName = 'bmkv${substring(uniqueSuffix, 0, 13)}'
+var functionAppName = '${projectName}-func-${environment}-${substring(uniqueSuffix, 0, 13)}'
+var hostingPlanName = '${projectName}-plan-${environment}-${substring(uniqueSuffix, 0, 13)}'
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   name: cosmosAccountName
@@ -26,7 +28,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
         isZoneRedundant: false
       }
     ]
-    enableFreeTier: true
+    enableFreeTier: false
     backupPolicy: {
       type: 'Periodic'
       periodicModeProperties: {
@@ -179,6 +181,99 @@ resource storageConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-0
   }
 }
 
+resource hostingPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+  name: hostingPlanName
+  location: location
+  kind: 'functionapp'
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+  properties: {
+    reserved: true
+  }
+  tags: {
+    project: projectName
+    environment: environment
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  properties: {
+    serverFarmId: hostingPlan.id
+    siteConfig: {
+      linuxFxVersion: 'NODE|18-lts'
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(functionAppName)
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'node'
+        }
+        {
+          name: 'COSMOS_DB_ENDPOINT'
+          value: cosmosAccount.properties.documentEndpoint
+        }
+        {
+          name: 'COSMOS_DB_KEY'
+          value: cosmosAccount.listKeys().primaryMasterKey
+        }
+        {
+          name: 'COSMOS_DB_DATABASE'
+          value: 'BabyMonitorDB'
+        }
+        {
+          name: 'COSMOS_DB_CONTAINER'
+          value: 'NoiseData'
+        }
+        {
+          name: 'STORAGE_CONNECTION_STRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_NODE_DEFAULT_VERSION'
+          value: '~18'
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: ''
+        }
+      ]
+      cors: {
+        allowedOrigins: ['*']
+        supportCredentials: false
+      }
+    }
+    httpsOnly: true
+  }
+  tags: {
+    project: projectName
+    environment: environment
+  }
+  dependsOn: [
+    hostingPlan
+    storageAccount
+    cosmosAccount
+  ]
+}
+
 resource staticWebApp 'Microsoft.Web/staticSites@2022-09-01' = {
   name: staticWebAppName
   location: location
@@ -199,6 +294,8 @@ resource staticWebApp 'Microsoft.Web/staticSites@2022-09-01' = {
 
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
 output staticWebAppName string = staticWebApp.name
+output functionAppName string = functionApp.name
+output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
 output cosmosDbEndpoint string = cosmosAccount.properties.documentEndpoint
 output cosmosDbAccountName string = cosmosAccount.name
 output storageAccountName string = storageAccount.name
