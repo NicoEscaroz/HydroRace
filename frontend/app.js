@@ -152,9 +152,21 @@ async function refresh() {
   const result = await getData();
 
   if (result.success && result.data.length > 0) {
-    updateChart(result.data);
-    updateIndicator(result.data[result.data.length - 1]);
-    document.getElementById('totalRecords').textContent = result.count;
+    // Ordenar por timestamp para asegurar que el último es el más reciente
+    const sortedData = [...result.data].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    updateChart(sortedData);
+    // Usar el último elemento (más reciente)
+    const latestReading = sortedData[sortedData.length - 1];
+    updateIndicator(latestReading);
+    document.getElementById('totalRecords').textContent =
+      result.count || sortedData.length;
+  } else if (result.success) {
+    // Si no hay datos, limpiar indicadores
+    updateIndicator(null);
+    document.getElementById('totalRecords').textContent = '0';
   }
 }
 
@@ -210,13 +222,22 @@ document
         statusEl.className = 'status-message show success';
         statusEl.textContent = `✅ Dato enviado exitosamente: ${decibels} dB`;
 
-        setTimeout(() => {
-          refresh();
-        }, 1000);
+        // Actualizar inmediatamente con el dato enviado
+        const newReading = {
+          deviceId: deviceId,
+          decibels: decibels,
+          timestamp: new Date().toISOString(),
+        };
+        updateIndicator(newReading);
+
+        // Esperar 2 segundos y refrescar todos los datos
+        setTimeout(async () => {
+          await refresh();
+        }, 2000);
 
         setTimeout(() => {
           statusEl.className = 'status-message';
-        }, 3000);
+        }, 4000);
       }
     } catch (error) {
       statusEl.className = 'status-message show error';
