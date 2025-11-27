@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RESOURCE_GROUP="Arcadio2"
+RESOURCE_GROUP="Arcadio3"
 DEPLOYMENT_NAME="babymonitor-$(date +%s)"
 
 echo "Monitor de Bebés (con datos de prueba)"
